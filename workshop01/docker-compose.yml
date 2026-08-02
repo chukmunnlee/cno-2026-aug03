@@ -1,0 +1,157 @@
+services:
+  shortener:
+    build: .
+    image: nodejs-tracing-starter-shortener:${IMAGE_VERSION:-latest}
+    command: npm run shortener
+    ports:
+    - ${SHORTENER_PORT}:${SHORTENER_PORT}
+    environment:
+      # from .env
+      PORT: ${SHORTENER_PORT}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      REDIRECTOR_URL: ${REDIRECTOR_URL}
+
+      OTEL_SERVICE_NAME: shortener
+      OTEL_SERVICE_VERSION: ${IMAGE_VERSION}
+      OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES}
+      OTEL_NODE_RESOURCE_DETECTORS: ${OTEL_NODE_RESOURCE_DETECTORS}
+
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+      OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL}
+      OTEL_TRACES_EXPORTER: ${OTEL_TRACES_EXPORTER}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  redirector:
+    build: .
+    command: npm run redirector
+    image: nodejs-tracing-starter-redirector:${IMAGE_VERSION:-latest}
+    ports:
+    - ${REDIRECTOR_PORT}:${REDIRECTOR_PORT}
+    environment:
+      # from .env
+      PORT: ${REDIRECTOR_PORT}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+
+      OTEL_SERVICE_NAME: redirector
+      OTEL_SERVICE_VERSION: ${IMAGE_VERSION}
+      OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES}
+      OTEL_NODE_RESOURCE_DETECTORS: ${OTEL_NODE_RESOURCE_DETECTORS}
+
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+      OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL}
+      OTEL_TRACES_EXPORTER: ${OTEL_TRACES_EXPORTER}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  db:
+    image: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U postgres]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  jaeger:
+    image: jaegertracing/jaeger
+    restart: always
+    ports:
+    - 16686:16686
+    - "4317"
+    - "4318"
+    environment:
+      JAEGER_LOG_LEVEL: ${JAEGER_LOG_LEVEL:-debug}
+
+  tempo:
+    image: grafana/tempo
+    command: -config.file=/opt/configs/tempo-config.yaml
+    restart: always
+    volumes:
+    - type: volume
+      source: tempo-data
+      target: /var/tempo
+    - type: bind
+      source: ./configs
+      target: /opt/configs/
+    ports:
+    # OTLP receivers
+    - "4317" # gRPC port
+    - "4318" # HTTP port
+    # Tempo native receives
+    - 3100:3100 # gRPC port
+    - 3200:3200 # HTTP port
+
+  otel:
+    image: otel/opentelemetry-collector-contrib
+    restart: always
+    volumes:
+    - type: bind
+      source: ./configs/otel-gateway-config.yaml
+      target: /etc/otelcol-contrib/config.yaml
+    ports:
+    # health_check extension
+    - 13133:13133 
+    # OTLP gRPC receiver
+    - 4317:4317 
+    # OTLP http receiver
+    - 4318:4318 
+    # zpages extension
+    - 55679:55679
+    depends_on:
+      jaeger:
+        condition: service_started
+      tempo:
+        condition: service_started
+
+  grafana:
+    image: grafana/grafana
+    ports:
+    - 3000:3000
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-admin}
+      GF_SERVER_ROOT_URL: ${GF_SERVER_ROOT_URL:-http://localhost:3000}
+    volumes:
+    - type: volume
+      source: grafana-data
+      target: /var/lib/grafana
+    - type: bind
+      source: ./configs/grafana.ini
+      target: /etc/grafana/grafana.ini
+    depends_on:
+      jaeger:
+        condition: service_started
+      tempo:
+        condition: service_started
+
+volumes:
+  pgdata:
+  grafana-data:
+  tempo-data:
+
+networks:
+  default:
+    name: cno
+    driver: bridge

@@ -1,0 +1,22 @@
+# TODO: Configure OTel Collector
+# https://opentelemetry.io/docs/collector/configuration/
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  zpages:
+    # view /debug/tracez
+    endpoint: 0.0.0.0:55679
+
+receivers:
+  nop:
+
+exporters:
+  nop:
+
+service:
+  extensions: [ health_check, zpages ]
+  pipelines:
+    traces:
+      receivers: [ nop ]
+      exporters: [ nop ]

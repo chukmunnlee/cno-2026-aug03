@@ -1,0 +1,5 @@
+#!/bin/sh
+export K6_OTEL_GRPC_EXPORTER_INSECURE="true"
+export K6_OTEL_GRPC_EXPORTER_ENDPOINT="localhost:4317"
+export K6_OTEL_METRIC_PREFIX="k6_"
+
