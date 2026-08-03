@@ -1,0 +1,11 @@
+a. { span:status = error }
+
+b   look for any recorded events of exception
+
+c. { span:status = error } rate() by (span:name) 
+
+d. { span:name =~ "/shorten" } | quantile_over_time(span:duration, 0.5, 0.9, 0.99)
+    tail latency is slowest response experience by x%, eg 1% 
+
+e. { resource.service.name = "redirector" } | max_over_time(span:duration) | topk(5)
+
