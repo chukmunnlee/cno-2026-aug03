@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"shortener": "node --experimental-loader=@opentelemetry/instrumentation/hook.mjs --import=@opentelemetry/auto-instrumentations-node/register shortener/index.js",
-		"redirector": "node --experimental-loader=@opentelemetry/instrumentation/hook.mjs --import=@opentelemetry/auto-instrumentations-node/register redirector/index.js"
+		"redirector": "node --import=./redirector/instrument.js redirector/index.js"
 	},
 	"dependencies": {
 		"@opentelemetry/api": "^1.9.1",
