@@ -5,7 +5,7 @@ import redis from "../lib/redis.js";
 import { geolocate } from "./geo.js";
 
 import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api'
-import { ATTR_DB_COLLECTION_NAME, ATTR_DB_QUERY_TEXT, ATTR_URL_PATH } from "@opentelemetry/semantic-conventions";
+import { ATTR_DB_COLLECTION_NAME, ATTR_DB_QUERY_TEXT, ATTR_HTTP_RESPONSE_STATUS_CODE, ATTR_URL_PATH } from "@opentelemetry/semantic-conventions";
 
 import metadata from '../package.json' with { type: 'json' }
 
@@ -64,6 +64,9 @@ router.get("/resolve/:code", async (req, res) => {
           res.json({ original_url: originalUrl });
           // mark span as successful
           span.setStatus(SpanStatusCode.OK)
+          span.setAttributes({
+            [ ATTR_HTTP_RESPONSE_STATUS_CODE ]: 200
+          })
 
         } catch (err) {
           // Record the exception event
@@ -71,6 +74,9 @@ router.get("/resolve/:code", async (req, res) => {
           // mark the span as error because of the exception
           span.setStatus(SpanStatusCode.ERROR)
           logger.error({ err }, "Resolve failed");
+          span.setAttributes({
+            [ ATTR_HTTP_RESPONSE_STATUS_CODE ]: 500
+          })
           res.status(500).json({ error: "Internal server error" });
 
         } finally {  
