@@ -1,0 +1,64 @@
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+
+common:
+  path_prefix: /var/loki
+  storage:
+    filesystem:
+      chunks_directory: /var/loki/chunks
+      rules_directory: /var/loki/rules
+  replication_factor: 1
+  ring:
+    instance_addr: 0.0.0.0
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+      # yyyy-mm-dd
+    - from: 2025-10-03
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+#The metric_aggregation_enabled: true setting enables LogQL metric queries in Loki. Here's what it does:
+#Purpose:
+#  Allows you to run metric-style queries that aggregate log data into time-series metrics, similar to what you'd do in Prometheus.
+limits_config:
+  allow_structured_metadata: true
+  metric_aggregation_enabled: true
+  max_query_series: 2000
+  otlp_config:
+    resource_attributes:
+      attributes_config:
+      - action: index_label
+        attributes:
+        - service.name
+        - service.version
+
+#The pattern_ingester configuration enables Log Pattern Detection, a newer Loki feature that automatically discovers and extracts patterns from your log data.
+#What it does:
+#  Automatically detects recurring log patterns - Finds common log structures without manual configuration
+#  Extracts structured data - Identifies fields and values from unstructured logs
+#  Creates pattern-based metrics - Generates time-series data from detected patterns
+pattern_ingester:
+  enabled: true
+  metric_aggregation:
+    loki_address: localhost:3100
+  lifecycler:
+    ring:
+      kvstore:
+        store: inmemory
+      
+ingester:
+  lifecycler:
+    ring:
+      kvstore:
+        store: inmemory
+
