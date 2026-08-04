@@ -1,3 +1,4 @@
+# otelcol
 # TODO: Configure OTel Collector
 # https://opentelemetry.io/docs/collector/configuration/
 
@@ -36,10 +37,28 @@ processors:
     spike_limit_mib: 512
     check_interval: 5s
 
+  tail_sampling:
+    decision_wait: 5s
+    num_traces: 100
+    expected_new_traces_per_sec: 5
+    policies:
+    - name: slow-trace
+      type: latency 
+      latency:
+        threshold_ms: 1100
+    - name: spans-with-errors
+      type: status_code 
+      status_code:
+        status_codes: [ ERROR ]
+    - name: keep-10-percent 
+      type: probabilistic 
+      probabilistic:
+        sampling_percentage: 10
+
 service:
   extensions: [ health_check, zpages ]
   pipelines:
     traces:
       receivers: [ otlp ]
-      processors: [ memory_limiter, batch ]
+      processors: [ memory_limiter, tail_sampling, batch ]
       exporters: [ debug, otlp/tempo, otlp/jaeger ]
