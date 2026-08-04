@@ -32,17 +32,71 @@ processors:
         sampling_percentage: 10
 
 receivers:
-
   otlp:
     protocols:
       grpc: 
         endpoint: 0.0.0.0:4317
       http: 
         endpoint: 0.0.0.0:4318
+  filelog:
+    include:
+    - /opt/logs/redirector.log
+    start_at: end
+    poll_interval: 1s
+    compression: auto
+    include_file_path: true
+    include_file_name: true
+    operators:
+    - type: json_parser
+      parse_from: body
+      parse_to: attributes
+      timestamp:
+        parse_from: attributes.time
+        layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+      trace:
+        trace_id:
+          parse_from: attributes.trace_id
+        span_id:
+          parse_from: attributes.span_id
+        trace_flags:
+          parse_from: attributes.trace_flags
+      severity:
+        parse_from: attributes.level
+        overwrite_text: true
+        mapping:
+          debug: 20
+          info: 30
+          warn: 40
+          error: 50
+          fatal: 60
+    - type: move
+      from: attributes["service.name"]
+      to: resource["service.name"]
+      if: 'attributes["service.name"] != nil'
+    - type: move
+      from: attributes["service.version"]
+      to: resource["service.version"]
+      if: 'attributes["service.version"] != nil'
+    - type: move
+      from: attributes.msg
+      to: body
+    - type: remove
+      field: attributes["span_id"]
+      if: 'attributes.span_id != nil'
+    - type: remove
+      field: attributes["trace_id"]
+      if: 'attributes.trace_id != nil'
+    - type: remove
+      field: attributes["trace_flags"]
+      if: 'attributes.trace_flags != nil'
 
 exporters:
   otlp/tempo:
     endpoint: tempo:4317
+    tls:
+      insecure: true
+  otlp_http/loki:
+    endpoint: http://loki:3100/otlp
     tls:
       insecure: true
 
@@ -58,3 +112,7 @@ service:
       receivers: [ otlp ]
       processors: [ batch, tail_sampling, memory_limiter ]
       exporters: [ otlp/tempo, debug ]
+    logs:
+      receivers: [ otlp, filelog ]
+      processors: [ batch, memory_limiter ]
+      exporters: [ otlp_http/loki, debug ]

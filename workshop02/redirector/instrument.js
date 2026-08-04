@@ -11,8 +11,6 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node'
 
-import { logger, logFile } from '../lib/logger.js'
-
 const OTEL_EXPORTER_OTLP_ENDPOINT = process.env.OTEL_EXPORTER_OTLP_ENDPOINT
 
 // Trace
@@ -27,6 +25,10 @@ const sdk = new NodeSDK({
 })
 
 sdk.start()
+
+// incorrect - hoisting
+//import { logger, logFile } from '../lib/logger.js'
+const { logger, logFile } = await import('../lib/logger.js')
 
 process.on('SIGTERM', () => {
   sdk.shutdown()

@@ -1,0 +1,10 @@
+{
+  "level": 30,
+  "time": "2026-08-04T05:14:14.419Z",
+  "service.name": "redirector",
+  "service.version": "workshop02",
+  "trace_id": "56516b629a0788229ab66c728821cd06",
+  "span_id": "7eeb4e18a07982f5",
+  "trace_flags": "01",
+  "msg": "GET /resolve/:code"
+}

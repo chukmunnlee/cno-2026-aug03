@@ -28,10 +28,16 @@ router.get("/resolve/:code", async (req, res) => {
       try {
         const cached = await redis.get(`urls:${code}`);
 
+        logger.info(
+          { cached, 'cache_hit': !!cached, code },
+          `Lookup code ${code}`)
+
         span0.setAttributes({
           [ ATTR_URL_PATH ]: "/resolve/:code",
           'cache.hit': !!cached
         })
+
+        logger.info("GET /resolve/:code")
 
         let originalUrl;
 
@@ -64,6 +70,8 @@ router.get("/resolve/:code", async (req, res) => {
             'code': code
           })
         }
+
+        logger.info({ code }, `Add to cache ${code}`)
 
         await recordVisit(req, code);
 
