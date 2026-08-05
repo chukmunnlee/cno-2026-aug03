@@ -1,0 +1,29 @@
+service: adservice
+annotations:
+  instrumentation.opentelemetry.io/inject-java: 'true'
+image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:latest
+
+service: cartservice
+annotations:
+  instrumentation.opentelemetry.io/inject-dotnet: 'true'
+image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-dotnet:latest
+
+service: productcatalogservice, shippingservice, checkoutservice
+annotations:
+  instrumentation.opentelemetry.io/inject-go: "true"
+  instrumentation.opentelemetry.io/otel-go-auto-target-exe: /src/server
+image: ghcr.io/open-telemetry/opentelemetry-go-instrumentation/autoinstrumentation-go:latest
+
+service: currencyservice, paymentservice
+annotations:
+  instrumentation.opentelemetry.io/inject-nodejs: 'true'
+image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-nodejs:latest
+
+service: emailservice recommendationservice
+annotations:
+  instrumentation.opentelemetry.io/inject-python: 'true'
+image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-python:latest
+
+service: loadgenerator
+annotations:
+  instrumentation.opentelemetry.io/inject-python: 'false'

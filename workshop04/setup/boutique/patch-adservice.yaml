@@ -1,0 +1,9 @@
+- op: replace
+  path: /spec/template/spec/containers/0/securityContext/readOnlyRootFilesystem
+  value: false
+- op: replace
+  path: /spec/template/spec/containers/0/resources/requests/cpu
+  value: 300m
+- op: replace
+  path: /spec/template/spec/containers/0/resources/limits/cpu
+  value: 500m

@@ -1,0 +1,15 @@
+- op: add
+  path: /spec/template/spec/securityContext/runAsUser
+  value: 0
+- op: add
+  path: /spec/template/spec/securityContext/runAsNonRoot
+  value: false
+- op: add
+  path: /spec/template/spec/containers/0/securityContext/runAsUser
+  value: 0
+- op: add
+  path: /spec/template/spec/containers/0/securityContext/allowPrivilegeEscalation
+  value: true
+- op: add
+  path: /spec/template/spec/containers/0/securityContext/privileged
+  value: true

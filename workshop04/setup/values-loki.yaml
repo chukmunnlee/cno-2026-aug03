@@ -1,0 +1,77 @@
+# loki-filesystem-values.yaml
+
+# 1. Select the Monolithic deployment mode
+# This runs all components (Ingester, Distributor, Querier, etc.) in a single pod
+deploymentMode: SingleBinary
+
+# 2. Disable unnecessary components/features for a simple setup
+# The SingleBinary mode automatically sets replicas to 1 for itself,
+# but we explicitly disable other modes that are enabled by default.
+backend:
+  replicas: 0
+read:
+  replicas: 0
+write:
+  replicas: 0
+singleBinary:
+  replicas: 1 # Ensure only one monolithic instance runs
+
+memcached:
+  enabled: false
+
+# 3. Configure Persistent Volume Storage
+# This section enables a PVC for the monolithic pod to store data on disk.
+  persistence:
+    enabled: true
+    # TODO: change this to a specicific storage class
+    storageClass: do-block-storage
+    size: 10Gi     # Adjust this size based on your log volume and retention needs.
+    accessModes:
+    - ReadWriteOncePod
+
+# 4. Configure Loki to use the 'filesystem' for storage (instead of S3/GCS)
+loki:
+  # Disable multi-tenancy - no X-Scope-OrgID header required for requests
+  auth_enabled: false
+
+  # Required for single replica deployments - set replication to 1
+  commonConfig:
+    replication_factor: 1
+
+  compactor:
+    retention_enabled: true
+    working_directory: /var/loki/retention
+    retention_delete_delay: 2h
+    delete_request_store: filesystem
+  #  retention_delete_delay: 30m
+  #  compaction_interval: 10m
+  #  working_directory: /var/compactor
+  #  delete_request_store: filesystem
+
+  limits_config:
+    retention_period: 3h
+
+  # General storage configuration
+  storage:
+    type: filesystem
+    filesystem:
+      # These directories point to the location inside the container's volume mount
+      chunks_directory: /var/loki/chunks
+      rules_directory: /var/loki/rules
+
+  # Schema configuration for log chunks and index
+  schemaConfig:
+    configs:
+    - from: 2025-10-03
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+compactor:
+  working_directory: /var/loki/retention
+  retention_enabled: true
+  retention_delete_delay: 2h
+  delete_request_store: filesystem

@@ -1,0 +1,28 @@
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: task02-otelcol
+  namespace: workshop04
+spec:
+  mode: daemonset
+  image: otel/opentelemetry-collector-contrib
+  imagePullPolicy: IfNotPresent
+  resources:
+    requests:
+      memory: 1024Mi
+      cpu: 300m
+    limits:
+      memory: 1024Mi
+      cpu: 300m
+  volumes:
+  - name: hostfs
+    hostPath: 
+      path: /
+      type: Directory
+  volumeMounts:
+  - name: hostfs
+    mountPath: /hostfs
+    readOnly: true
+  config: 
+    # Configuration goes here

@@ -1,0 +1,62 @@
+# Persistent volume for trace storage
+persistence:
+  enabled: true
+
+  # TODO: change this to a specicific storage class
+  storageClassName: do-block-storage 
+  accessModes:
+  - ReadWriteOncePod
+  size: 10Gi  # Adjust size as needed
+  enableStatefulSetAutoDeletePVC: true
+
+tempo:
+
+  retention: 1h
+
+  compactor:
+    compaction:
+      block_retention: 1h
+      compaction_window: 1h
+      compacted_block_retention: 10m
+    ring:
+      kvstore:
+        store: memberlist
+
+  server:
+    log_level: info
+    log_format: logfmt
+
+  # Enable processors in overrides (for all tenants)
+  overrides:
+    defaults:
+      metrics_generator:
+        #Enables three types of metric generation from trace data:
+        #- local-blocks: Generates metrics from local trace blocks
+        #- service-graphs: Creates service dependency graphs showing how services call each other
+        #- span-metrics: Produces RED metrics (Rate, Errors, Duration) from span data
+        processors: [local-blocks, service-graphs, span-metrics]
+
+  querier:
+    max_concurrent_queries: 20
+    trace_by_id:
+      query_timeout: 30s
+
+  query_frontend:
+    max_retries: 3
+
+  metricsGenerator:
+    enabled: true
+    # From kube-prometheus-stack
+    # TODO: Update __PROMETHEUS_ENDPOINT__ with the Prometheus service name, /api/v1/write
+    remoteWriteUrl: http://prom-stack-kube-prometheus-prometheus.prometheus.svc.cluster.local:9090/api/v1/write
+
+    #config:
+    #  generate_native_histograms: both
+    #  processor:
+    #    span_metrics:
+    #      enable_target_info: true
+    #    local_blocks:
+    #      filter_server_spans: false
+    #    service_graphs:
+    #      max_items: 10000
+

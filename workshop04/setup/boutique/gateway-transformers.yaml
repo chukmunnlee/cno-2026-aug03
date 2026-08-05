@@ -1,0 +1,28 @@
+nameReference:
+- kind: Service
+  fieldSpecs:
+  - group: gateway.networking.k8s.io
+    version: v1
+    kind: HTTPRoute
+    path: spec/rules/backendRefs/name
+- kind: Gateway
+  group: gateway.networking.k8s.io
+  version: v1
+  fieldSpecs:
+  - group: gateway.networking.k8s.io
+    version: v1
+    kind: HTTPRoute
+    path: spec/parentRefs/name
+
+namespace:
+- group: gateway.networking.k8s.io
+  version: v1
+  kind: HTTPRoute
+  path: spec/rules/backendRefs/namespace
+  create: true
+#  Uncomment if Gateway is deployed in the same namespace as the boutique
+#- group: gateway.networking.k8s.io
+#  version: v1
+#  kind: HTTPRoute
+#  path: spec/parentRefs/namespace
+#  create: true

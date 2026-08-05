@@ -1,0 +1,6 @@
+- op: add
+  path: /spec/template/spec/containers/0/readinessProbe/initialDelaySeconds
+  value: 15 
+- op: add
+  path: /spec/template/spec/containers/0/livenessProbe/initialDelaySeconds
+  value: 15 

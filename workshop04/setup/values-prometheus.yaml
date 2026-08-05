@@ -1,0 +1,19 @@
+prometheus:
+  prometheusSpec:
+    otlp:
+      keepIdentifyingResourceAttributes: true
+      translationStrategy: UnderscoreEscapingWithSuffixes
+      promoteResourceAttributes:
+      - service.instance.id
+      - service.name
+      - service.namespace
+      - service.version
+      - cloud.availability_zone
+      - cloud.region
+      - deployment.environment.name
+
+    enableFeatures:
+    - exemplar-storage
+    - native-histogram
+
+    enableRemoteWriteReceiver: true

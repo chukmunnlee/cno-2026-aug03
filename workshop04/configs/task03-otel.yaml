@@ -1,0 +1,33 @@
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  zpages:
+    # view /debug/tracez
+    endpoint: 0.0.0.0:55679
+
+processors:
+  batch: {}
+  memory_limiter:
+    limit_mib: 1024
+    spike_limit_mib: 410
+    check_interval: 5
+
+receivers:
+  prometheus: {}
+
+exporters:
+  prometheus_remote_write: {}
+
+  debug:
+    # basic, normal, detailed
+    verbosity: detailed
+    sampling_initial: 1
+    sampling_thereafter: 100
+
+service:
+  extensions: [ health_check, zpages ]
+  pipelines:
+    metrics:
+      receivers: [ prometheus ]
+      processors: [ batch, memory_limiter ]
+      exporters: [ prometheus_remote_write, debug ]

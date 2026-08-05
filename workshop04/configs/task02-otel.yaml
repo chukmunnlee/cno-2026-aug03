@@ -1,0 +1,37 @@
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  zpages:
+    # view /debug/tracez
+    endpoint: 0.0.0.0:55679
+
+processors:
+  batch: {}
+  memory_limiter:
+    limit_mib: 1024
+    spike_limit_mib: 410
+    check_interval: 5
+
+receivers:
+  filelog: {}
+    # filelog recevier configuration
+
+exporters:
+  otlp:
+    endpoint: task01-otelcol-collector.workshop04.svc.cluster.local:4317
+    tls:
+      insecure: true
+
+  debug:
+    # basic, normal, detailed
+    verbosity: detailed
+    sampling_initial: 1
+    sampling_thereafter: 100
+
+service:
+  extensions: [ health_check, zpages ]
+  pipelines:
+    logs:
+      receivers: [ filelog ]
+      processors: [ batch, memory_limiter ]
+      exporters: [ otlp, debug ]

@@ -1,0 +1,72 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- kustomize
+- boutique.yaml
+
+components:
+- kustomize/components/non-public-frontend
+#- kustomize/components/without-loadgenerator
+
+configurations:
+- gateway-transformers.yaml
+#- https://gist.githubusercontent.com/chukmunnlee/7e1494732539ffe67e84b3c0cfc7e5b9/raw/59e69aec497b8ea8a84ccebadf6f9fd98fd2ff05/gateway-transformers.yaml
+
+namespace: workshop04
+
+images:
+  # custom build of .Net cartservice that supports OTel inject
+- name: us-central1-docker.pkg.dev/google-samples/microservices-demo/cartservice
+  newName: chukmunnlee/cartservice
+  # byteman in Chaos Mesh only supports JDK 21, downgrade to adservice:v0.10.3
+- name: us-central1-docker.pkg.dev/google-samples/microservices-demo/adservice
+  newTag: v0.10.3
+
+patches:
+  # increase the delay time to start readiness and liveness probes
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: recommendationservice
+  path: patch-probes.yaml
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: emailservice
+  path: patch-probes.yaml
+  # Enable write to root file system to allow Byteman JAR to be added to app
+  # Increase the memory requests and limits
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: adservice
+  path: patch-adservice.yaml
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: frontend
+  path: patch-security-context.yaml
+  # Run as root and allow privilege escalation for eBPF instrumention
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: productcatalogservice
+  path: patch-security-context.yaml
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: shippingservice
+  path: patch-security-context.yaml
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: checkoutservice
+  path: patch-security-context.yaml

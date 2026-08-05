@@ -1,0 +1,11 @@
+manager:
+  extraArgs:
+  - --enable-go-instrumentation=true
+  collectorImage: 
+    repository: otel/opentelemetry-operator
+
+admissionWebhooks:
+  certManager:
+    enabled: false
+  autoGenerateCert:
+    enabled: true

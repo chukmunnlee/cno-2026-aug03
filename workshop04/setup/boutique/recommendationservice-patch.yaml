@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommendationservice
+spec:
+  template:
+    spec:
+      containers:
+      - name: server
+        readinessProbe:
+          initialDelaySeconds: 15
+          timeoutSeconds: 3
+        livenessProbe:
+          initialDelaySeconds: 20
+          timeoutSeconds: 3

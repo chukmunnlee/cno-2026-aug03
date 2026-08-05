@@ -1,0 +1,43 @@
+# Install and update repos
+helm repo add traefik https://traefik.github.io/charts
+helm repo add grafana-community https://grafana-community.github.io/helm-charts/
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+# Install prometheus stack
+helm install prom-stack prometheus-community/kube-prometheus-stack -nprometheus --create-namespace -f ./values-prometheus.yaml
+
+# Install Tempo
+IMPORTANT: verify the storageClass is do-block-storage in values-tempo.yaml
+IMPORTANT: verify Prometheus write endpoint in values-tempo.yaml before installing
+helm install tempo grafana-community/tempo -ntempo --create-namespace -f ./values-tempo.yaml
+
+# Install Loki
+IMPORTANT: verify the storageClass is do-block-storage in values-loki.yaml
+helm install loki grafana-community/loki -nloki --create-namespace -f ./values-loki.yaml
+
+# Install Open Telemetry Operator
+helm install my-opentelemetry-operator open-telemetry/opentelemetry-operator \
+  -f ./values-oteloperator.yaml \
+  -notelcol --create-namespace
+
+# Create gateway
+kubectl apply -f ./gateway.yaml
+
+# Expose services. Update GATEWAY_IP with Gateway IP address
+kubectl apply -f ./expose-services.yaml
+
+# Grafana's admin user name and password
+kubectl get secret/prom-stack-grafana -nprometheus -ojsonpath='{.data.admin-user}' | base64 -d -
+kubectl get secret/prom-stack-grafana -nprometheus -ojsonpath='{.data.admin-password}' | base64 -d -
+
+# Deploy demo application
+## Create workshop04 namespace
+kubectl apply -f ./workshop04.yaml
+
+## From https://github.com/googlecloudplatform/microservices-demo
+## Deploy online boutique, note -k not -f
+kubectl apply -k boutique
+
+Navigate to boutique on http://boutique.GATEWAY_IP.nip.io
