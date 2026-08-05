@@ -1,0 +1,122 @@
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  zpages:
+    # view /debug/tracez
+    endpoint: 0.0.0.0:55679
+
+processors:
+  batch:
+  memory_limiter:
+    limit_mib: 2048
+    spike_limit_mib: 410
+    check_interval: 5
+
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 100
+    expected_new_traces_per_sec: 10
+    policies:
+    - name: slow-spans
+      type: latency
+      latency:
+        threshold_ms: 1000
+    - name: error-spans
+      type: status_code
+      status_code:
+        status_codes: 
+        - ERROR
+    - name: sample-10-percent
+      type: probabilistic
+      probabilistic:
+        sampling_percentage: 10
+
+  filter:
+    error_mode: ignore
+    log_conditions:
+    - resource.attributes["deployment.environment.name"] != "production"
+
+receivers:
+  filelog:
+    include:
+    - /opt/logs/redirector.log
+    start_at: end
+    poll_interval: 1s
+    compression: auto
+    include_file_path: true
+    operators:
+    - type: json_parser 
+      parse_from: body
+      parse_to: attributes
+      timestamp:
+        parse_from: attributes.time
+        layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+      trace:
+        trace_id: 
+          parse_from: attributes.trace_id
+        span_id: 
+          parse_from: attributes.span_id
+        trace_flags:
+          parse_from: attributes.trace_flags
+      severity:
+        parse_from: attributes.level
+        preset: default
+        overwrite_text: true
+        mapping:
+          debug: 20
+          info: 30
+          warn: 40
+          error: 50
+          fatal: 60
+    - type: move 
+      from: attributes["service.name"]
+      to: resource["service.name"]
+      if: 'attributes["service.name"] != nil'
+    - type: move 
+      from: attributes["service.version"]
+      to: resource["service.version"]
+      if: 'attributes["service.version"] != nil'
+    - type: remove
+      field: attributes.trace_id
+      if: 'attributes.trace_id != nil'
+    - type: remove
+      field: attributes.span_id
+      if: 'attributes.span_id != nil'
+    - type: remove
+      field: attributes.trace_flags
+      if: 'attributes.trace_flags != nil'
+
+  otlp:
+    protocols:
+      grpc: 
+        endpoint: 0.0.0.0:4317
+      http: 
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  otlp_http/loki:
+    endpoint: http://loki:3100/otlp
+    tls:
+      insecure: true
+
+  debug:
+    # basic, normal, detailed
+    verbosity: detailed
+    sampling_initial: 1
+    sampling_thereafter: 100
+
+service:
+  extensions: [ health_check, zpages ]
+  pipelines:
+    traces:
+      receivers: [ otlp ]
+      processors: [ batch, tail_sampling, memory_limiter ]
+      exporters: [ otlp/tempo, debug ]
+    logs:
+      receivers: [ otlp, filelog ]
+      processors: [ batch, filter, memory_limiter ]
+      exporters: [ otlp_http/loki, debug ]

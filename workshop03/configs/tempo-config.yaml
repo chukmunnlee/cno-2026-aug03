@@ -1,0 +1,53 @@
+# https://github.com/grafana/tempo/blob/main/example/docker-compose/local/tempo.yaml
+stream_over_http_enabled: true
+# run all componets in a single binary
+target: all
+
+# Global configuration
+overrides:
+  defaults:
+    metrics_generator:
+      # Enable for RED metrics
+      #processors: [service-graphs, span-metrics]
+      processors: [service-graphs]
+
+server:
+  http_listen_port: 3200
+  log_level: info
+  log_format: logfmt
+
+distributor:
+  receivers: 
+    otlp:
+      protocols:
+        grpc: 
+          endpoint: 0.0.0.0:4317
+        http: 
+          endpoint: 0.0.0.0:4318
+
+storage:
+  trace:
+    backend: local                
+    local:
+      path: /var/tempo/traces      # Set to correct path on your computer
+    wal:
+      path: /var/tempo/wal         # Set to correct path on your computer
+
+
+# https://grafana.com/docs/tempo/latest/operations/traceql-metrics/
+metrics_generator:
+  storage:
+    path: /var/tempo/generator/wal
+    remote_write:
+    - url: http://prometheus:9090/api/v1/write
+      send_exemplars: true
+
+# https://grafana.com/docs/tempo/latest/configuration/#querier
+# https://grafana.com/docs/tempo/latest/operations/backend_search/
+querier:
+  max_concurrent_queries: 20
+  trace_by_id:
+    query_timeout: 30s
+
+query_frontend:
+  max_retries: 3
