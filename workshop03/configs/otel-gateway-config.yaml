@@ -35,6 +35,18 @@ processors:
     error_mode: ignore
     log_conditions:
     - resource.attributes["deployment.environment.name"] != "production"
+    metric_conditions:
+    - IsMatch(metric.name, "^(?i)v8js.*")
+    - IsMatch(metric.name, "^(?i)nodejs.*")
+
+  transform:
+    error_mode: ignore
+    metric_statements:
+    - statements:
+      - set(datapoint.attributes["service.name"], resource.attributes["service.name"]) where resource.attributes["service.name"] != nil
+      - set(datapoint.attributes["service.version"], resource.attributes["service.version"]) where resource.attributes["service.version"] != nil
+      - set(datapoint.attributes["deployment.environment.name"], resource.attributes["deployment.environment.name"]) where resource.attributes["deployment.environment.name"] != nil
+      - set(datapoint.attributes["cloud_region"], resource.attributes["cloud_region"]) where resource.attributes["cloud_region"] != nil
 
 receivers:
   filelog:
@@ -93,7 +105,7 @@ receivers:
       http: 
         endpoint: 0.0.0.0:4318
 
-  prometheus:
+  prometheus/receiver:
     config:
       scrape_configs:
       - job_name: redirector
@@ -117,7 +129,7 @@ exporters:
     sampling_initial: 1
     sampling_thereafter: 100
 
-  prometheus:
+  prometheus/exporter:
     endpoint: 0.0.0.0:9090
     # include timestamp
     send_timestamps: true
@@ -133,9 +145,9 @@ service:
   extensions: [ health_check, zpages ]
   pipelines:
     metrics:
-      receivers: [ prometheus ]
-      processors: [ memory_limiter, batch ]
-      exporters: [ debug, prometheus ]
+      receivers: [ prometheus/receiver, otlp ]
+      processors: [ memory_limiter, transform, filter, batch ]
+      exporters: [ debug, prometheus/exporter ]
     traces:
       receivers: [ otlp ]
       processors: [ memory_limiter, tail_sampling, batch ]

@@ -3,12 +3,14 @@ import db from "../lib/db.js";
 import { logger } from "../lib/logger.js";
 import redis from "../lib/redis.js";
 import { geolocate } from "./geo.js";
+// Import the metrics
 import { cacheRatioGauge, cacheCountCounter, restApiDurationHistogram, httpRequestInFlightUpdownCounter } from './metrics.js'
 
 import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api'
 import { ATTR_DB_COLLECTION_NAME, ATTR_DB_QUERY_TEXT, ATTR_HTTP_RESPONSE_STATUS_CODE, ATTR_URL_PATH } from "@opentelemetry/semantic-conventions";
 
 import metadata from '../package.json' with { type: 'json' }
+import { start } from "node:repl";
 
 const SERVICE_NAME = process.env.OTEL_SERVICE_NAME || metadata.name
 const SERVICE_VERSION = process.env.OTEL_SERVICE_VERSION || metadata.version
@@ -22,24 +24,41 @@ const router = Router();
 const tracer = trace.getTracer(SERVICE_NAME, SERVICE_VERSION)
 
 // Cache statistics
-let hit = 0
-let totalLookup = 0
+
+let hit = 0.0
+let totalLookup = 1.0
 
 // Metric: Hit ratio
+cacheRatioGauge.addCallback(
+  (gauge) => {
+    const ratio = hit / totalLookup
+    gauge.observe(ratio)
+  }
+)
 
 router.get("/health", (_req, res) => res.json({ status: "ok" }));
 
+// @GetMapping(path="/resolve/{code}")
 router.get("/resolve/:code", async (req, res) => {
 	const { code } = req.params;
 
   // Metric: Inflight request
+  // count the request when it starts
+  httpRequestInFlightUpdownCounter.add(1, { [ ATTR_URL_PATH ]: '/code/:code' })
+  // decrement when the request ends 
+  res.on('finish', () => {
+    httpRequestInFlightUpdownCounter.add(-1, { [ ATTR_URL_PATH ]: '/code/:code' })
+  })
 
   tracer.startActiveSpan('Resolve shortener code', { kind: SpanKind.SERVER },
     async (span0) => {
 
       try {
-        totalLookup++
         const cached = await redis.get(`url:${code}`);
+        totalLookup += 1.0
+
+        // Count the hit/miss
+        cacheCountCounter.add(1, { hit: !!cached })
 
         span0.setAttributes({
           [ ATTR_URL_PATH ]: "/resolve/:code",
@@ -52,7 +71,7 @@ router.get("/resolve/:code", async (req, res) => {
         // Metric: Hit counter
 
         if (cached) {
-          hit++
+          hit += 1.0
           originalUrl = cached;
         } else {
           const result = await db.query(
@@ -110,6 +129,7 @@ async function recordVisit(req, shortCode) {
 	const ip = req.get("x-forwarded-for") || req.ip || req.socket.remoteAddress;
 	const userAgent = req.get("user-agent") || "unknown";
 
+  // capture the start time
   const startTime = Date.now()
   let resolved = true
 
@@ -126,7 +146,8 @@ async function recordVisit(req, shortCode) {
     resolved = false
 	} finally {
     // Metric: REST endpoint duration
-    
+    console.info('>>>>> recording rest calculation')
+    restApiDurationHistogram.record(Date.now() - startTime, { get_resolved: resolved })
   }
 }
 
