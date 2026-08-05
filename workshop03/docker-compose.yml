@@ -42,6 +42,7 @@ services:
     image: nodejs-tracing-starter-redirector:${IMAGE_VERSION:-latest}
     ports:
     - ${REDIRECTOR_PORT}:${REDIRECTOR_PORT}
+    - ${OTEL_EXPORTER_PROMETHEUS_PORT}:${OTEL_EXPORTER_PROMETHEUS_PORT}
     environment:
       # from .env
       PORT: ${REDIRECTOR_PORT}

@@ -93,6 +93,14 @@ receivers:
       http: 
         endpoint: 0.0.0.0:4318
 
+  prometheus:
+    config:
+      scrape_configs:
+      - job_name: redirector
+        scrape_interval: 15s
+        static_configs:
+        - targets: [ 'redirector:9464' ]
+
 exporters:
   otlp/tempo:
     endpoint: tempo:4317
@@ -109,14 +117,30 @@ exporters:
     sampling_initial: 1
     sampling_thereafter: 100
 
+  prometheus:
+    endpoint: 0.0.0.0:9090
+    # include timestamp
+    send_timestamps: true
+    # do not copy attributes frm OTLP resource to metrics
+    resource_to_telemetry_conversion: 
+      enabled: false
+    # convert dots to underscore
+    translation_strategy: UnderscoreEscapingWithSuffixes
+    # Examplars
+    enable_open_metrics: true
+
 service:
   extensions: [ health_check, zpages ]
   pipelines:
+    metrics:
+      receivers: [ prometheus ]
+      processors: [ memory_limiter, batch ]
+      exporters: [ debug, prometheus ]
     traces:
       receivers: [ otlp ]
-      processors: [ batch, tail_sampling, memory_limiter ]
+      processors: [ memory_limiter, tail_sampling, batch ]
       exporters: [ otlp/tempo, debug ]
     logs:
       receivers: [ otlp, filelog ]
-      processors: [ batch, filter, memory_limiter ]
+      processors: [ memory_limiter, filter, batch ]
       exporters: [ otlp_http/loki, debug ]
