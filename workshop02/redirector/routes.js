@@ -26,7 +26,7 @@ router.get("/resolve/:code", async (req, res) => {
     async (span0) => {
 
       try {
-        const cached = await redis.get(`urls:${code}`);
+        const cached = await redis.get(`url:${code}`);
 
         logger.info(
           { cached, 'cache_hit': !!cached, code },
@@ -64,7 +64,7 @@ router.get("/resolve/:code", async (req, res) => {
 
           originalUrl = result.rows[0].original_url;
 
-          await redis.set(`urls:${code}`, originalUrl, { EX: 86400 });
+          await redis.set(`url:${code}`, originalUrl, { EX: 86400 });
 
           span0.addEvent('Update cache', {  
             'code': code
@@ -77,10 +77,10 @@ router.get("/resolve/:code", async (req, res) => {
 
         res.json({ original_url: originalUrl });
 
-        span0.setStatus(SpanStatusCode.OK)
+        span0.setStatus({ code: SpanStatusCode.OK })
 
       } catch (err) {
-        span0.setStatus(SpanStatusCode.ERROR)
+        span0.setStatus({ code: SpanStatusCode.ERROR, message: JSON.stringify(err) })
         span0.recordException(err)
 
         logger.error({ err }, "Resolve failed");

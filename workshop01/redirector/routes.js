@@ -27,7 +27,7 @@ router.get("/resolve/:code", async (req, res) => {
       async (span) => {
         // start of work
         try {
-          const cached = await redis.get(`urls:${code}`);
+          const cached = await redis.get(`url:${code}`);
 
           // Add attributes
           span.setAttributes({
@@ -55,7 +55,7 @@ router.get("/resolve/:code", async (req, res) => {
               [ ATTR_DB_COLLECTION_NAME ]: 'urls',
               [ ATTR_DB_QUERY_TEXT ]: "SELECT original_url FROM urls WHERE short_code = $1"
             })
-            await redis.set(`urls:${code}`, originalUrl, { EX: 86400 });
+            await redis.set(`url:${code}`, originalUrl, { EX: 86400 });
             // record an event
             span.addEvent('Cache updated', { code: code })
           }
@@ -63,7 +63,7 @@ router.get("/resolve/:code", async (req, res) => {
           await recordVisit(req, code);
           res.json({ original_url: originalUrl });
           // mark span as successful
-          span.setStatus(SpanStatusCode.OK)
+          span.setStatus({ code: SpanStatusCode.OK })
           span.setAttributes({
             [ ATTR_HTTP_RESPONSE_STATUS_CODE ]: 200
           })
@@ -72,7 +72,7 @@ router.get("/resolve/:code", async (req, res) => {
           // Record the exception event
           span.recordException(err)
           // mark the span as error because of the exception
-          span.setStatus(SpanStatusCode.ERROR)
+          span.setStatus({ code: SpanStatusCode.ERROR, message: JSON.stringify(err) })
           logger.error({ err }, "Resolve failed");
           span.setAttributes({
             [ ATTR_HTTP_RESPONSE_STATUS_CODE ]: 500
