@@ -13,8 +13,41 @@ processors:
     check_interval: 5
 
 receivers:
-  filelog: {}
+  filelog:
     # filelog recevier configuration
+    include:
+      # /hostfs is where the node's files system is mounted
+    - /hostfs/var/log/pods/workshop04_*/*/*.log
+    exclude:
+    - /hostfs/var/log/pods/workshop04_loadgenerator*/*/*.log
+    - /hostfs/var/log/pods/workshop04_*/opentelemetry-auto-instrumentation*/*.log
+    - /hostfs/var/log/pods/workshop04_*/otc-container/*.log
+    # log.file.path
+    include_file_path: true
+    start_at: end
+
+    operators:
+    - type: container
+      add_metadata_from_filepath: true
+      on_error: drop
+    - type: copy
+      from: resource["k8s.pod.name"]
+      to: resource["pod"]
+    - type: copy
+      from: resource["k8s.namespace.name"]
+      to: resource["namespace"]
+    - type: move
+      from: attributes["log.iostream"]
+      to: resource["stream"]
+    - type: add 
+      field: resource["service.instance.id"]
+      value: EXPR(resource["k8s.namespace.name"] + "." + resource["k8s.pod.name"] + "." + resource["k8s.container.name"])
+    - type: severity_parser
+      parse_from: resource["stream"]
+      overwrite_text: true
+      mapping:
+        info: stdout
+        error: stderr
 
 exporters:
   otlp:
