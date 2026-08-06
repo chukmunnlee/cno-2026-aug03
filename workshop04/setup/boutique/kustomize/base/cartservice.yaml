@@ -26,6 +26,8 @@ spec:
     metadata:
       labels:
         app: cartservice
+      annotations:
+        instrumentation.opentelemetry.io/inject-dotnet: 'true'
     spec:
       serviceAccountName: cartservice
       terminationGracePeriodSeconds: 5

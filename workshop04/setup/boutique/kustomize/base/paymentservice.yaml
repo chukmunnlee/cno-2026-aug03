@@ -27,6 +27,8 @@ spec:
       labels:
         app: paymentservice
         prometheus.io/name: paymentservice
+      annotations:
+        instrumentation.opentelemetry.io/inject-nodejs: 'true'
     spec:
       serviceAccountName: paymentservice
       terminationGracePeriodSeconds: 5

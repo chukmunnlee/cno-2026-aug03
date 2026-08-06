@@ -27,6 +27,8 @@ spec:
       labels:
         app: currencyservice
         prometheus.io/name: currencyservice
+      annotations:
+        instrumentation.opentelemetry.io/inject-nodejs: 'true'
     spec:
       serviceAccountName: currencyservice
       terminationGracePeriodSeconds: 5

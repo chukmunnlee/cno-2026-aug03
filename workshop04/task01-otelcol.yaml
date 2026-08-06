@@ -1,0 +1,95 @@
+--- 
+apiVersion: opentelemetry.io/v1beta1 
+kind: OpenTelemetryCollector
+metadata:
+  name: task01-otelcol
+  namespace: workshop04
+spec: 
+  # gateway
+  mode: deployment
+  replicas: 1
+  image: otel/opentelemetry-collector-contrib:latest
+  imagePullPolicy: IfNotPresent
+  resources:
+    requests:
+      memory: 512Mi
+      # 1 vcpu == 1000m
+      cpu: 200m
+    limits:
+      memory: 512Mi
+      cpu: 200m
+  # otel configuration
+  config:
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+      zpages:
+        # view /debug/tracez
+        endpoint: 0.0.0.0:55679
+
+    connectors:
+      spanmetrics:
+        histogram: 
+          unit: ms
+          exponential:
+            max_size: 160
+        exemplars:
+          enabled: true
+        events:
+          enabled: true
+          dimensions:
+          - name: event.name
+          - name: exception.type
+        aggregation_temporality: "AGGREGATION_TEMPORALITY_CUMULATIVE"
+
+    processors:
+      batch: {}
+      memory_limiter:
+        limit_mib: 1024
+        spike_limit_mib: 410
+        check_interval: 5
+
+    receivers:
+      otlp:
+        protocols:
+          grpc: 
+            endpoint: 0.0.0.0:4317
+          http: 
+            endpoint: 0.0.0.0:4318
+
+    exporters:
+      otlp/tempo:
+        endpoint: tempo.tempo.svc.cluster.local:4317
+        tls:
+          insecure: true
+      otlp_http/loki:
+        endpoint: http://loki.loki.svc.cluster.local:3100/otlp
+        tls:
+          insecure: true
+
+      prometheus_remote_write:
+        endpoint: http://prom-stack-kube-prometheus-prometheus.prometheus:9090/api/v1/write
+        tls:
+          insecure: true
+
+      debug:
+        # basic, normal, detailed
+        verbosity: detailed
+        sampling_initial: 1
+        sampling_thereafter: 100
+
+    service:
+      extensions: [ health_check, zpages ]
+      pipelines:
+        metrics:
+          receivers: [ otlp, spanmetrics ]
+          processors: [ batch, memory_limiter ]
+          exporters: [ prometheus_remote_write, debug ]
+        traces:
+          receivers: [ otlp ]
+          processors: [ batch, memory_limiter ]
+          exporters: [ otlp/tempo, spanmetrics, debug ]
+        logs:
+          receivers: [ otlp ]
+          processors: [ batch, memory_limiter ]
+          exporters: [ otlp_http/loki, debug ]

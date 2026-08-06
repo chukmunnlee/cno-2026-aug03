@@ -1,5 +1,5 @@
 # Install and update repos
-helm repo add traefik https://traefik.github.io/charts
+#helm repo add traefik https://traefik.github.io/charts
 helm repo add grafana-community https://grafana-community.github.io/helm-charts/
 helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
@@ -18,9 +18,7 @@ IMPORTANT: verify the storageClass is do-block-storage in values-loki.yaml
 helm install loki grafana-community/loki -nloki --create-namespace -f ./values-loki.yaml
 
 # Install Open Telemetry Operator
-helm install my-opentelemetry-operator open-telemetry/opentelemetry-operator \
-  -f ./values-oteloperator.yaml \
-  -notelcol --create-namespace
+helm install my-opentelemetry-operator open-telemetry/opentelemetry-operator -f ./values-oteloperator.yaml -notelcol --create-namespace
 
 # Create gateway
 kubectl apply -f ./gateway.yaml

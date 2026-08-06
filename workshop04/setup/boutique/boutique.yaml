@@ -7,7 +7,7 @@ spec:
   hostnames:
   #TODO: change the GATEWAY_IP to gateway IP address
   # - boutique-GATEWAY_IP.nip.io
-  - boutique.192.168.39.200.nip.io
+  - boutique.146.190.5.112.nip.io
   parentRefs:
   - name: default-gtw 
     namespace: default

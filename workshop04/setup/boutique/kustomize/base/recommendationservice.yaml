@@ -22,6 +22,8 @@ spec:
   selector:
     matchLabels:
       app: recommendationservice
+    annotations:
+      instrumentation.opentelemetry.io/inject-python: 'true'
   template:
     metadata:
       labels:

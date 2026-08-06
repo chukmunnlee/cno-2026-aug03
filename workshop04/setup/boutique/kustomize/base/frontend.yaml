@@ -28,6 +28,8 @@ spec:
         app: frontend
       annotations:
         sidecar.istio.io/rewriteAppHTTPProbers: "true"
+        instrumentation.opentelemetry.io/inject-go: "true"
+        instrumentation.opentelemetry.io/otel-go-auto-target-exe: /src/server
     spec:
       serviceAccountName: frontend
       securityContext:

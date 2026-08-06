@@ -1,0 +1,30 @@
+---
+apiVersion: opentelemetry.io/v1alpha1 
+kind: Instrumentation
+metadata:
+  name: task01-otelinst
+  namespace: workshop04
+spec:
+  exporter:
+    # <service_name>.<namespace>.svc.cluster.local
+    endpoint: http://task01-otelcol-collector.workshop04.svc.cluster.local:4317
+  propagators:
+  - tracecontext 
+  - baggage
+  sampler:
+    type: parentbased_traceidratio
+    argument: "1"
+  env:
+  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+    value: grpc
+  - name: OTEL_TRACES_EXPORTER
+    value: otlp
+  - name: OTEL_LOGS_EXPORTER
+    value: otlp
+  - name: OTEL_METRICS_EXPORTER
+    value: otlp
+
+  nodejs:
+    env:
+    - name: OTEL_METRICS_EXPORTER
+      value: none

@@ -28,6 +28,7 @@ spec:
         app: loadgenerator
       annotations:
         sidecar.istio.io/rewriteAppHTTPProbers: "true"
+        instrumentation.opentelemetry.io/inject-python: 'false'
     spec:
       serviceAccountName: loadgenerator
       terminationGracePeriodSeconds: 5

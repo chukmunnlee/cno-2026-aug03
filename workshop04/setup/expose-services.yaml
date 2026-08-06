@@ -7,7 +7,7 @@ metadata:
 spec:
   hostnames:
   #TODO: change the GATEWAY_IP to gateway IP address
-  - prometheus-GATEWAY_IP.nip.io
+  - prometheus.146.190.5.112.nip.io
   parentRefs:
     - name: default-gtw 
       namespace: default
@@ -31,7 +31,7 @@ metadata:
 spec:
   hostnames:
   #TODO: change the GATEWAY_IP to gateway IP address
-  - grafana-GATEWAY_IP.nip.io
+  - grafana.146.190.5.112.nip.io
   parentRefs:
     - name: default-gtw 
       namespace: default
@@ -45,4 +45,3 @@ spec:
     - name: prom-stack-grafana
       namespace: prometheus
       port: 80
-
