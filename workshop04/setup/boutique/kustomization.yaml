@@ -70,3 +70,7 @@ patches:
     kind: Deployment
     name: checkoutservice
   path: patch-security-context.yaml
+- target:
+    kind: Deployment
+    labelSelector: "app != frontend"
+  path: patch-resource.yaml

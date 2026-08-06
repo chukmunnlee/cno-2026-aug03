@@ -1,0 +1,12 @@
+chaosDaemon:
+  # need to findout what container runtime docker is using
+  runtime: containerd
+  socketPath: /run/containerd/containerd.sock
+  privileged: true
+  env:
+    CGROUP_DRIVER: systemd
+
+controllerManager:
+  env:
+    # set metrics port
+    METRICS_PORT: 10080

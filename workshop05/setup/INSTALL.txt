@@ -1,0 +1,24 @@
+# Install and update the Helm repos
+helm repo add chaos-mesh https://charts.chaos-mesh.org
+helm repo update
+
+# IMPORTANT: Install workshop04 before continuing with the installation
+
+# Install metrics server 
+kubectl apply -f metrics-server.yaml
+
+# Install frontend service HPA
+kubectl apply -f frontend-hpa.yaml
+
+# Install Chaos-Mesh
+helm install chaos-mesh chaos-mesh/chaos-mesh -nchaos-mesh --create-namespace -f values-chaos-mesh.yaml
+
+# Access dashboard
+kubectl apply -f /chaosmesh-httproute.yaml
+
+# Create access token for 1 day
+kubectl create token chaos-dashboard -nchaos-mesh --duration=86400s > chaos-access-token.txt
+
+# Create workshop05 namespace
+kubectl create ns workshop05
+

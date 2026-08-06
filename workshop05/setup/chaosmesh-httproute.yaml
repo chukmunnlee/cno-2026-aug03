@@ -1,0 +1,38 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: bind-dashboard-cluster-manager
+subjects:
+- kind: ServiceAccount
+  name: chaos-dashboard
+  namespace: chaos-mesh
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: dashboard-httproute
+  namespace: chaos-mesh
+spec:
+  parentRefs:
+  - name: default-gtw
+    namespace: default
+    port: 80
+  hostnames:
+  #TODO: change to GATEWAY_IP address
+  # - chaos-GATEWAY_IP.nip.io
+  - chaos.192.168.39.200.nip.io
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: chaos-dashboard
+      namespace: chaos-mesh
+      port: 2333

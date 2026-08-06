@@ -1,0 +1,8 @@
+# Simulate error when calling getAds with 30% failure
+RULE random-exception-adservice
+  CLASS hipstershop.AdService$AdServiceImpl
+  METHOD getAds
+  AT ENTRY
+  IF Math.random() < 0.3
+  DO throw new java.lang.RuntimeException("Injected exception (random 30%)")
+ENDRULE
