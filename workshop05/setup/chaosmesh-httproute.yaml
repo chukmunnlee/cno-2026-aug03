@@ -26,7 +26,7 @@ spec:
   hostnames:
   #TODO: change to GATEWAY_IP address
   # - chaos-GATEWAY_IP.nip.io
-  - chaos.192.168.39.200.nip.io
+  - chaos.146.190.5.112.nip.io
   rules:
   - matches:
     - path:

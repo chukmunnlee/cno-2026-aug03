@@ -29,6 +29,8 @@ spec:
         prometheus.io/name: currencyservice
       annotations:
         instrumentation.opentelemetry.io/inject-nodejs: 'true'
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9464'
     spec:
       serviceAccountName: currencyservice
       terminationGracePeriodSeconds: 5

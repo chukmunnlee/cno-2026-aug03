@@ -1,0 +1,86 @@
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: task03-otelcol
+  namespace: workshop04
+spec:
+  # gateway
+  mode: statefulset
+  replicas: 1
+  image: otel/opentelemetry-collector-contrib:latest
+  imagePullPolicy: IfNotPresent
+  serviceAccount: otel-collector-sa
+  resources:
+    requests:
+      memory: 512Mi
+      # 1 vcpu == 1000m
+      cpu: 200m
+    limits:
+      memory: 512Mi
+      cpu: 200m
+  # otel configuration
+  config:
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+      zpages:
+        # view /debug/tracez
+        endpoint: 0.0.0.0:55679
+
+    processors:
+      batch: {}
+      memory_limiter:
+        limit_mib: 1024
+        spike_limit_mib: 410
+        check_interval: 5
+
+    receivers:
+      prometheus:
+        config:
+          scrape_configs:
+          - job_name: k8s-pods
+            kubernetes_sd_configs:
+            - role: pod
+            relabel_configs:
+            # workshop04;true
+            - source_labels: [ __meta_kubernetes_namespace, __meta_kubernetes_pod_annotation_prometheus_io_scrape ]
+              regex: workshop04;true
+              action: keep
+            - source_labels: [ __meta_kubernetes_pod_ip, __meta_kubernetes_pod_annotation_prometheus_io_port ]
+              regex: (.+);(.+)
+              action: replace
+              target_label: __address__
+              replacement: $1:$2
+            - source_labels: [ __meta_kubernetes_pod_ready ]
+              regex: (.+)
+              action: replace
+              target_label: k8s_pod_ready
+              replacement: $1
+            - source_labels: [ __meta_kubernetes_pod_phase ]
+              regex: (.+)
+              action: replace
+              target_label: k8s_pod_phase
+              replacement: $1
+
+    exporters:
+      prometheus_remote_write:
+        endpoint: http://prom-stack-kube-prometheus-prometheus.prometheus:9090/api/v1/write
+        tls:
+          insecure: true
+        resource_to_telemetry_conversion:
+          enabled: true
+
+      debug:
+        # basic, normal, detailed
+        verbosity: detailed
+        sampling_initial: 1
+        sampling_thereafter: 100
+
+    service:
+      extensions: [ health_check, zpages ]
+      pipelines:
+        metrics:
+          receivers: [ prometheus ]
+          processors: [ batch, memory_limiter ]
+          exporters: [ prometheus_remote_write, debug ]
