@@ -3,7 +3,7 @@
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
-const GATEWAY_IP = __ENV.GATEWAY_IP || "192.168.39.200"
+const GATEWAY_IP = __ENV.GATEWAY_IP || "146.190.5.112"
 const BOUTIQUE_URL = __ENV.BOUTIQUE_URL || `http://boutique.${GATEWAY_IP}.nip.io/`;
 
 // Black Friday load shape: normal pre-sale traffic that explodes when doorbuster

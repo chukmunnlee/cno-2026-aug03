@@ -1,0 +1,97 @@
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Workflow
+metadata:
+  name: black-friday-chaos
+  namespace: workshop05
+spec:
+  entry: main
+  templates:
+  - name: main
+    templateType: Serial
+    deadline: 10m
+    children:
+    - pause-for-ramp-up
+    - chaos-friday
+
+  # wait for ramp up
+  - name: pause-for-ramp-up
+    templateType: Suspend
+    deadline: 2m
+
+  - name: chaos-friday
+    templateType: Parallel 
+    deadline: 7m
+    children:
+    - pod-chaos-checkout
+    - network-latency-redis-cart
+    - stress-frontend
+    - buggy-adservice
+  - name: pod-chaos-checkout
+    templateType: PodChaos
+    deadline: 5m
+    podChaos: 
+      selector:
+        namespaces: [ workshop04 ]
+        labelSelectors:
+          app: checkoutservice
+      mode: fixed-percent
+      value: "70"
+      action: pod-failure
+  - name: network-latency-redis-cart 
+    templateType: NetworkChaos
+    deadline: 5m
+    networkChaos:
+      action: delay
+      mode: all
+      selector: 
+        namespaces: [ workshop04 ]
+        labelSelectors:
+          app: cartservice
+      direction: to
+      target:
+        mode: all
+        selector:
+          namespaces: [ workshop04 ]
+          labelSelectors:
+            app: redis-cart
+      delay:
+        latency: 5000ms
+        jitter: 500ms
+        correlation: "70"
+  - name: stress-frontend
+    templateType: StressChaos
+    deadline: 5m
+    stressChaos:
+      selector:
+        namespaces: [ workshop04 ]
+        labelSelectors:
+          app: frontend
+      mode: all
+      stressors:
+        cpu:
+          workers: 2
+          load: 90
+        memory:
+          workers: 1
+          size: 100MB
+  - name: buggy-adservice
+    templateType: JVMChaos
+    deadline: 5m
+    jvmChaos:
+      action: ruleData
+      mode: all
+      selector:
+        namespaces: [ workshop04 ]
+        labelSelectors:
+          app: adservice
+      containerNames: [ server ]
+      ruleData: |
+        # Simulate error when calling getAds with 30% failure
+        RULE random-exception-adservice
+          CLASS hipstershop.AdService$AdServiceImpl
+          METHOD getAds
+          AT ENTRY
+          IF Math.random() < 0.4
+          DO throw new java.lang.RuntimeException("Injected exception (random 30%)")
+        ENDRULE
